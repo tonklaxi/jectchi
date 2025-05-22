@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ผลการวิเคราะห์สีปัสสาวะ</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>ผลการวิเคราะห์</h1>
+        <div class="result-section">
+            {% if image_url %}
+                <h2>รูปภาพที่อัปโหลด:</h2>
+                <img src="{{ image_url }}" alt="ภาพปัสสาวะ" class="uploaded-image">
+            {% endif %}
+            <h2>ผลการวิเคราะห์สี:</h2>
+            <p>{{ result }}</p>
+            <a href="/">กลับไปหน้าหลัก</a>
+        </div>
+    </div>
+</body>
+</html>
