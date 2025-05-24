@@ -1,36 +1,81 @@
-from flask import Flask, request, render_template, send_from_directory
+from flask import Flask, request, render_template, send_from_directory, redirect, url_for
 import cv2
 import numpy as np
 import os
-import base64
+from werkzeug.utils import secure_filename
 from datetime import datetime
 
 app = Flask(__name__)
+
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def analyze_urine_color(image_path):
-    img = cv2.imread(image_path)
-    img = cv2.resize(img, (200, 200))
-    avg_color_per_row = np.average(img, axis=0)
-    avg_color = np.average(avg_color_per_row, axis=0)
-    b, g, r = avg_color
-    hsv_img = cv2.cvtColor(np.uint8([[avg_color]]), cv2.COLOR_BGR2HSV)[0][0]
-    h, s, v = hsv_img
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"File not found: {image_path}")
 
-    if v > 220 and s < 30:
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError(f"Cannot read image file: {image_path}")
+
+    # Crop image center (สมมติมีแก้วน้ำ แต่เราจะจับเฉพาะกลางภาพ เพื่อวิเคราะห์สีฉี่)
+    h, w, _ = img.shape
+    crop_size = 150
+    x1, y1 = max(w//2 - crop_size//2, 0), max(h//2 - crop_size//2, 0)
+    x2, y2 = x1 + crop_size, y1 + crop_size
+    roi = img[y1:y2, x1:x2]
+
+    roi = cv2.resize(roi, (200, 200))
+
+    avg_color = cv2.mean(roi)[:3]  # (B, G, R)
+    b, g, r = avg_color
+
+    # แปลง BGR -> RGB
+    rgb = (r, g, b)
+
+    # เงื่อนไขคร่าวๆ ปรับได้ตามผลทดลอง
+    if r > 200 and g > 200 and b > 200:
         return "ใส (อาจดื่มน้ำมาก)"
-    elif 40 < h < 70 and s > 100:
+    elif r > 200 and 150 < g < 200 and b < 100:
         return "เหลืองอ่อน (ปกติ)"
-    elif 20 < h < 40:
+    elif r > 180 and 100 < g <= 150 and b < 80:
         return "เหลืองเข้ม (อาจขาดน้ำ)"
-    elif 10 < h < 20:
+    elif r > 150 and 50 < g <= 100 and b < 60:
         return "ส้ม (ขาดน้ำมาก)"
-    elif h < 10:
+    elif r > 100 and g < 70 and b < 50:
         return "น้ำตาล (ควรพบแพทย์)"
     else:
         return "ไม่สามารถประเมินได้"
+
+def analyze_nitrite_level(image_path, mode="yellow"):
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"File not found: {image_path}")
+
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError(f"Cannot read image file: {image_path}")
+
+    img = cv2.resize(img, (200, 200))
+
+    # Crop ตรงกลางภาพ 80x80 px
+    h, w, _ = img.shape
+    x1, y1 = w//2 - 40, h//2 - 40
+    x2, y2 = w//2 + 40, h//2 + 40
+    roi = img[y1:y2, x1:x2]
+
+    _, g, _ = cv2.mean(roi)[:3]
+
+    if mode == "white":
+        PCON = g - 248.63
+        CON = abs(PCON / 35.433)
+    else:  # yellow
+        PCON = g - 208.23
+        CON = abs(PCON / 77.37)
+
+    CON = max(CON - 0.1, 0)
+
+    return f"ปริมาณไนไตรต์โดยประมาณ: {CON:.2f} mg/mL"
 
 @app.route('/')
 def index():
@@ -38,26 +83,34 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    if 'image' in request.files:
-        file = request.files['image']
-        filename = file.filename
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(filepath)
-    else:
-        data_url = request.form['camera_image']
-        header, encoded = data_url.split(",", 1)
-        binary_data = base64.b64decode(encoded)
-        filename = f"capture_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        with open(filepath, "wb") as f:
-            f.write(binary_data)
+    if 'image' not in request.files:
+        return "ไม่พบไฟล์รูปภาพ", 400
 
-    result = analyze_urine_color(filepath)
-    return render_template('result.html', image_url=f'/uploads/{filename}', result=result)
+    file = request.files['image']
+    if file.filename == '':
+        return "ไม่ได้เลือกไฟล์", 400
+
+    filename = secure_filename(file.filename)
+    # เพิ่ม timestamp กันชื่อซ้ำ
+    filename = datetime.now().strftime('%Y%m%d_%H%M%S_') + filename
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    try:
+        mode = request.form.get("mode", "yellow")
+        urine_result = analyze_urine_color(filepath)
+        nitrite_result = analyze_nitrite_level(filepath, mode)
+    except Exception as e:
+        return f"เกิดข้อผิดพลาดในการประมวลผลภาพ: {e}", 500
+
+    return render_template('result.html',
+                           image_url=url_for('uploaded_file', filename=filename),
+                           urine_result=urine_result,
+                           nitrite_result=nitrite_result)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=18800)
+    app.run(host='0.0.0.0', port=18800, debug=True)
