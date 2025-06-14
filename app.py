@@ -73,7 +73,7 @@ def analyze_nitrite_level(image_path, mode="yellow"):
 
     CON = max(CON - 0.1, 0)
 
-    return f"ปริมาณไนไตรต์โดยประมาณ: {CON:.2f} mg/mL"
+    return f"ปริมาณไนไตรต์: {CON:.2f} mg/mL"
 
 @app.route('/')
 def index():
