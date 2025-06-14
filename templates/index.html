@@ -1,57 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <title>วิเคราะห์สีปัสสาวะ</title>
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-size: 18px; /* ใหญ่ขึ้นทุกอย่าง */
+        }
         body {
             font-family: 'Arial', sans-serif;
             background: #f5f5f5;
             display: flex;
             justify-content: center;
-            padding: 40px;
+            align-items: center;
+            height: 100vh;
         }
         .container {
             background: #ffffff;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 600px;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            width: 90%;
+            max-width: 700px;
         }
         h1 {
             text-align: center;
             color: #4CAF50;
+            font-size: 2.2em;
+            margin-bottom: 25px;
         }
         .upload-btn {
             display: block;
             background: #009688;
             color: white;
-            padding: 12px;
+            padding: 16px;
             text-align: center;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 16px;
-            margin-bottom: 20px;
+            font-size: 1.1em;
+            margin-bottom: 25px;
         }
         .submit-btn {
             background: #3f51b5;
             color: white;
-            padding: 12px;
+            padding: 16px;
             border: none;
             width: 100%;
-            font-size: 16px;
-            border-radius: 8px;
+            font-size: 1.2em;
+            border-radius: 10px;
             cursor: pointer;
         }
+        #preview {
+            text-align: center;
+        }
+
         #preview img {
+            display: block;
+            margin: 20px auto 0 auto;
             max-width: 100%;
-            max-height: 300px;
-            border: 1px solid #ddd;
-            margin-top: 10px;
+            max-height: 600px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
         }
         .mode-select {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+        .mode-select label {
+            margin-right: 20px;
         }
     </style>
 </head>
@@ -63,13 +82,13 @@
         <label for="imageInput" class="upload-btn">📷 เลือกรูปหรือถ่ายภาพ</label>
 
         <div class="mode-select">
-            <label><input type="radio" name="mode" value="yellow" checked> Yellow Nitrite</label>
-            <label style="margin-left: 15px;"><input type="radio" name="mode" value="white"> White Nitrite</label>
+            <label><input type="radio" name="mode" value="yellow" checked> โหมด Yellow Nitrite</label>
+            <label><input type="radio" name="mode" value="white"> โหมด White Nitrite</label>
         </div>
 
         <div id="preview"></div>
 
-        <button type="submit" class="submit-btn">🔍 วิเคราะห์</button>
+        <button type="submit" class="submit-btn">🔍 เริ่มวิเคราะห์</button>
     </form>
 </div>
 

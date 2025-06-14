@@ -19,34 +19,32 @@ def analyze_urine_color(image_path):
     if img is None:
         raise ValueError(f"Cannot read image file: {image_path}")
 
-    # Crop image center (สมมติมีแก้วน้ำ แต่เราจะจับเฉพาะกลางภาพ เพื่อวิเคราะห์สีฉี่)
     h, w, _ = img.shape
     crop_size = 150
     x1, y1 = max(w//2 - crop_size//2, 0), max(h//2 - crop_size//2, 0)
     x2, y2 = x1 + crop_size, y1 + crop_size
     roi = img[y1:y2, x1:x2]
-
     roi = cv2.resize(roi, (200, 200))
 
     avg_color = cv2.mean(roi)[:3]  # (B, G, R)
     b, g, r = avg_color
 
-    # แปลง BGR -> RGB
-    rgb = (r, g, b)
+    rgb = (int(r), int(g), int(b))  # แปลงให้เป็น int เพื่อโชว์สวยงาม
 
-    # เงื่อนไขคร่าวๆ ปรับได้ตามผลทดลอง
     if r > 200 and g > 200 and b > 200:
-        return "ใส (อาจดื่มน้ำมาก)"
+        result = "ใส (อาจดื่มน้ำมาก)"
     elif r > 200 and 150 < g < 200 and b < 100:
-        return "เหลืองอ่อน (ปกติ)"
+        result = "เหลืองอ่อน (ปกติ)"
     elif r > 180 and 100 < g <= 150 and b < 80:
-        return "เหลืองเข้ม (อาจขาดน้ำ)"
+        result = "เหลืองเข้ม (อาจขาดน้ำ)"
     elif r > 150 and 50 < g <= 100 and b < 60:
-        return "ส้ม (ขาดน้ำมาก)"
+        result = "ส้ม (ขาดน้ำมาก)"
     elif r > 100 and g < 70 and b < 50:
-        return "น้ำตาล (ควรพบแพทย์)"
+        result = "น้ำตาล (ควรพบแพทย์)"
     else:
-        return "ไม่สามารถประเมินได้"
+        result = "ไม่สามารถประเมินได้"
+
+    return result, rgb[0], rgb[1], rgb[2]  # return r, g, b
 
 def analyze_nitrite_level(image_path, mode="yellow"):
     if not os.path.exists(image_path):
@@ -91,14 +89,13 @@ def upload():
         return "ไม่ได้เลือกไฟล์", 400
 
     filename = secure_filename(file.filename)
-    # เพิ่ม timestamp กันชื่อซ้ำ
     filename = datetime.now().strftime('%Y%m%d_%H%M%S_') + filename
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
 
     try:
         mode = request.form.get("mode", "yellow")
-        urine_result = analyze_urine_color(filepath)
+        urine_result, r, g, b = analyze_urine_color(filepath)
         nitrite_result = analyze_nitrite_level(filepath, mode)
     except Exception as e:
         return f"เกิดข้อผิดพลาดในการประมวลผลภาพ: {e}", 500
@@ -106,7 +103,8 @@ def upload():
     return render_template('result.html',
                            image_url=url_for('uploaded_file', filename=filename),
                            urine_result=urine_result,
-                           nitrite_result=nitrite_result)
+                           nitrite_result=nitrite_result,
+                           r=r, g=g, b=b)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):

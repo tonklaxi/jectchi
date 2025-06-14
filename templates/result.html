@@ -1,50 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <title>ผลวิเคราะห์สีปัสสาวะ</title>
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-size: 18px;
+        }
         body {
             font-family: 'Arial', sans-serif;
             background: #f5f5f5;
-            padding: 40px;
             display: flex;
             justify-content: center;
+            align-items: center;
         }
         .container {
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            max-width: 600px;
-            width: 100%;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            max-width: 700px;
+            width: 90%;
             text-align: center;
         }
         h1 {
             color: #4CAF50;
-            margin-bottom: 20px;
+            font-size: 2.2em;
+            margin-bottom: 25px;
         }
         img {
             max-width: 100%;
-            max-height: 300px;
-            border: 1px solid #ddd;
+            max-height: 500px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
             margin-bottom: 20px;
         }
         .result {
-            font-size: 18px;
-            margin-bottom: 10px;
+            font-size: 1.2em;
+            margin-bottom: 12px;
+        }
+        .rgb-values {
+            font-size: 1.1em;
+            margin-top: 15px;
+            color: #333;
         }
         .back-btn {
             background: #009688;
             color: white;
-            padding: 12px 25px;
+            padding: 14px 30px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 1.1em;
             text-decoration: none;
             display: inline-block;
-            margin-top: 20px;
+            margin-top: 25px;
         }
         .back-btn:hover {
             background: #00796b;
@@ -57,8 +70,12 @@
 
     <img src="{{ image_url }}" alt="Uploaded Image">
 
-    <div class="result"><strong>ผลวิเคราะห์สีปัสสาวะ:</strong> {{ urine_result }}</div>
-    <div class="result"><strong>{{ nitrite_result }}</strong></div>
+    <div class="rgb-values">
+        <strong>ค่า RGB:</strong> R={{ r }}, G={{ g }}, B={{ b }}
+    </div>
+    <div class="result"><strong>ผลไนไตรท์:</strong> {{ nitrite_result }}</div>
+
+
 
     <a href="{{ url_for('index') }}" class="back-btn">⬅️ กลับไปหน้าแรก</a>
 </div>
