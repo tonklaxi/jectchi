@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <title>วิเคราะห์สารเคมีในปัสสาวะ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet" />
+    <style>
+        /* (styles unchanged, omitted for brevity) */
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>วิเคราะห์สารเคมีในปัสสาวะ</h1>
+        <p class="subtitle">อัปโหลดรูปภาพเพื่อวิเคราะห์ระดับไนไตรต์หรือโปรตีนในปัสสาวะ</p>
+
+        <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+            <input type="file" id="imageInput" name="image" accept="image/*" required onchange="previewImage(event)">
+            <label for="imageInput" class="upload-btn">📷 เลือกรูปภาพหรือถ่ายภาพ</label>
+
+            <div class="mode-select">
+                <label><input type="radio" name="mode" value="yellow_nitrite" checked> ไนไตรต์ (แถบเหลือง)</label>
+                <label><input type="radio" name="mode" value="white_nitrite"> ไนไตรต์ (แถบขาว)</label>
+            </div>
+            <div class="mode-select">
+                <label><input type="radio" name="mode" value="yellow_protein"> โปรตีน (แถบเหลือง)</label>
+                <label><input type="radio" name="mode" value="white_protein"> โปรตีน (แถบขาว)</label>
+            </div>
+
+            <div id="preview" class="empty">ยังไม่มีรูปภาพ</div>
+
+            <button type="submit" class="submit-btn">🔍 วิเคราะห์</button>
+        </form>
+    </div>
+
+    <script>
+        function previewImage(event) {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = "";
+            preview.classList.remove('empty');
+
+            const file = event.target.files[0];
+            if (!file) {
+                preview.classList.add('empty');
+                preview.textContent = "ยังไม่มีรูปภาพ";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                preview.appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html>

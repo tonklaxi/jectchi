@@ -12,24 +12,19 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def analyze_urine_color(image_path):
-    if not os.path.exists(image_path):
-        raise FileNotFoundError(f"File not found: {image_path}")
-
     img = cv2.imread(image_path)
     if img is None:
-        raise ValueError(f"Cannot read image file: {image_path}")
+        raise ValueError("ไม่สามารถเปิดไฟล์รูปภาพได้")
 
     h, w, _ = img.shape
     crop_size = 150
-    x1, y1 = max(w//2 - crop_size//2, 0), max(h//2 - crop_size//2, 0)
+    x1, y1 = max(w // 2 - crop_size // 2, 0), max(h // 2 - crop_size // 2, 0)
     x2, y2 = x1 + crop_size, y1 + crop_size
     roi = img[y1:y2, x1:x2]
     roi = cv2.resize(roi, (200, 200))
 
-    avg_color = cv2.mean(roi)[:3]  # (B, G, R)
-    b, g, r = avg_color
-
-    rgb = (int(r), int(g), int(b))  # แปลงให้เป็น int เพื่อโชว์สวยงาม
+    b, g, r = cv2.mean(roi)[:3]
+    rgb = (r, g, b)
 
     if r > 200 and g > 200 and b > 200:
         result = "ใส (อาจดื่มน้ำมาก)"
@@ -44,67 +39,76 @@ def analyze_urine_color(image_path):
     else:
         result = "ไม่สามารถประเมินได้"
 
-    return result, rgb[0], rgb[1], rgb[2]  # return r, g, b
+    return result, rgb
 
-def analyze_nitrite_level(image_path, mode="yellow"):
-    if not os.path.exists(image_path):
-        raise FileNotFoundError(f"File not found: {image_path}")
-
+def analyze_chemical_level(image_path, mode="yellow_nitrite"):
     img = cv2.imread(image_path)
     if img is None:
-        raise ValueError(f"Cannot read image file: {image_path}")
+        raise ValueError("ไม่สามารถเปิดไฟล์รูปภาพได้")
 
     img = cv2.resize(img, (200, 200))
-
-    # Crop ตรงกลางภาพ 80x80 px
     h, w, _ = img.shape
-    x1, y1 = w//2 - 40, h//2 - 40
-    x2, y2 = w//2 + 40, h//2 + 40
+    x1, y1 = w // 2 - 40, h // 2 - 40
+    x2, y2 = w // 2 + 40, h // 2 + 40
     roi = img[y1:y2, x1:x2]
-
     _, g, _ = cv2.mean(roi)[:3]
 
-    if mode == "white":
-        PCON = g - 248.63
+    if mode == "yellow_protein":
+        PCON = g - 208.41
+        CON = abs(PCON / 13.433)
+        result = f"ปริมาณโปรตีน (แถบเหลือง): {CON:.2f} mg/mL"
+    elif mode == "white_protein":
+        PCON = g - 250.24
         CON = abs(PCON / 35.433)
-    else:  # yellow
+        result = f"ปริมาณโปรตีน (แถบขาว): {CON:.2f} mg/mL"
+    elif mode == "yellow_nitrite":
         PCON = g - 208.23
         CON = abs(PCON / 77.37)
+        result = f"ปริมาณไนไตรต์ (แถบเหลือง): {CON:.2f} mg/mL"
+    elif mode == "white_nitrite":
+        PCON = g - 248.63
+        CON = abs(PCON / 35.433)
+        result = f"ปริมาณไนไตรต์ (แถบขาว): {CON:.2f} mg/mL"
+    else:
+        result = "โหมดไม่ถูกต้อง"
+        CON = 0.0
 
     CON = max(CON - 0.1, 0)
-
-    return f"ปริมาณไนไตรต์: {CON:.2f} mg/mL"
+    return result, round(CON, 2)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('landing.html')
+
+@app.route('/upload-page')
+def upload_page():
+    return render_template('upload.html')
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    if 'image' not in request.files:
-        return "ไม่พบไฟล์รูปภาพ", 400
+    if 'image' not in request.files or request.files['image'].filename == '':
+        return "ไม่ได้เลือกรูปภาพ", 400
 
     file = request.files['image']
-    if file.filename == '':
-        return "ไม่ได้เลือกไฟล์", 400
-
-    filename = secure_filename(file.filename)
-    filename = datetime.now().strftime('%Y%m%d_%H%M%S_') + filename
+    filename = datetime.now().strftime('%Y%m%d_%H%M%S_') + secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
 
+    mode = request.form.get("mode", "yellow_nitrite")
+
     try:
-        mode = request.form.get("mode", "yellow")
-        urine_result, r, g, b = analyze_urine_color(filepath)
-        nitrite_result = analyze_nitrite_level(filepath, mode)
+        urine_result, rgb = analyze_urine_color(filepath)
+        chemical_result, _ = analyze_chemical_level(filepath, mode)
     except Exception as e:
-        return f"เกิดข้อผิดพลาดในการประมวลผลภาพ: {e}", 500
+        return f"เกิดข้อผิดพลาดในการวิเคราะห์: {e}", 500
+
+    rgb_rounded = tuple(round(c, 2) for c in rgb)
 
     return render_template('result.html',
                            image_url=url_for('uploaded_file', filename=filename),
                            urine_result=urine_result,
-                           nitrite_result=nitrite_result,
-                           r=r, g=g, b=b)
+                           chemical_result=chemical_result,
+                           rgb=rgb_rounded)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
