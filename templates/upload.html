@@ -1,58 +1,122 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8" />
-    <title>วิเคราะห์สารเคมีในปัสสาวะ</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet" />
-    <style>
-        /* (styles unchanged, omitted for brevity) */
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>อัปโหลดภาพเพื่อวิเคราะห์</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1:#ffe7ef;
+      --bg2:#fffafb;
+      --card:#ffffff;
+      --text:#2b2b2b;
+      --muted:#6b7280;
+      --primary:#6C63FF;
+      --primary-strong:#4F46E5;
+      --shadow: 0 20px 45px rgba(0,0,0,.08);
+      --radius: 24px;
+      --border:#eef2ff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;min-height:100vh;
+      font-family:'Kanit',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans",sans-serif;
+      background: radial-gradient(1200px 600px at 20% -10%, #ffd4e2 0%, transparent 60%),
+                  radial-gradient(1200px 700px at 100% 0%, #ffeef6 0%, transparent 55%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      display:grid;place-items:center;color:var(--text);
+      padding:24px;
+    }
+    .wrap{width:min(920px,92vw)}
+    .card{
+      background:linear-gradient(180deg,#fffefe, #fff9fc 60%, #ffffff);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:clamp(20px,5vw,42px);
+    }
+    .steps{display:flex;gap:10px;margin-bottom:22px}
+    .step{height:8px;flex:1;border-radius:999px;background:#ffd5e7;opacity:.6}
+    .step.active{background:#ff92bb;opacity:1}
+    h2{margin:2px 0 10px 0;font-size:clamp(20px,3vw,28px)}
+    .sub{color:var(--muted);margin:0 0 18px 0;line-height:1.6}
+    form{margin-top:10px}
+    .drop{
+      border:1.5px dashed #e6e6ff;
+      background:#fafaff;
+      border-radius:18px;
+      padding:18px;
+      display:grid;place-items:center;
+      text-align:center;
+    }
+    .drop input[type=file]{display:none}
+    .pick{
+      display:inline-block;padding:12px 18px;border-radius:999px;
+      background:#f3f4ff;border:1px solid var(--border);color:#4338CA;text-decoration:none;
+      font-weight:600;cursor:pointer;
+    }
+    .hint{color:#9ca3af;font-size:14px;margin-top:8px}
+    .preview{
+      margin-top:16px;display:none;justify-content:center;
+    }
+    .preview img{max-width:100%;border-radius:14px;border:1px solid #f1eefc}
+    .roi{margin-top:8px;font-size:12px;color:#6b7280}
+    .actions{display:flex;gap:12px;align-items:center;margin-top:18px;flex-wrap:wrap}
+    .cta{
+      display:inline-block;padding:14px 22px;border-radius:999px;
+      background:linear-gradient(90deg,var(--primary),var(--primary-strong));color:#fff;
+      text-decoration:none;font-weight:600;box-shadow:0 10px 25px rgba(79,70,229,.35);
+      border:0;cursor:pointer;
+    }
+    .cta[disabled]{opacity:.5;cursor:not-allowed;box-shadow:none;background:#c7c9ff}
+    .back{color:#6b7280;text-decoration:none}
+  </style>
 </head>
 <body>
+  <div class="wrap">
     <div class="card">
-        <h1>วิเคราะห์สารเคมีในปัสสาวะ</h1>
-        <p class="subtitle">อัปโหลดรูปภาพเพื่อวิเคราะห์ระดับไนไตรต์หรือโปรตีนในปัสสาวะ</p>
-
-        <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
-            <input type="file" id="imageInput" name="image" accept="image/*" required onchange="previewImage(event)">
-            <label for="imageInput" class="upload-btn">📷 เลือกรูปภาพหรือถ่ายภาพ</label>
-
-            <div class="mode-select">
-                <label><input type="radio" name="mode" value="yellow_nitrite" checked> ไนไตรต์ (แถบเหลือง)</label>
-                <label><input type="radio" name="mode" value="white_nitrite"> ไนไตรต์ (แถบขาว)</label>
-            </div>
-            <div class="mode-select">
-                <label><input type="radio" name="mode" value="yellow_protein"> โปรตีน (แถบเหลือง)</label>
-                <label><input type="radio" name="mode" value="white_protein"> โปรตีน (แถบขาว)</label>
-            </div>
-
-            <div id="preview" class="empty">ยังไม่มีรูปภาพ</div>
-
-            <button type="submit" class="submit-btn">🔍 วิเคราะห์</button>
-        </form>
+      <div class="steps" aria-label="progress">
+        <div class="step active"></div>
+        <div class="step active"></div>
+        <div class="step active"></div>
+      </div>
+      <h2>อัปโหลดภาพสำหรับวิเคราะห์</h2>
+      <p class="sub">รองรับไฟล์ภาพทั่วไป (.jpg, .jpeg, .png) ระบบจะวิเคราะห์ภาพเพื่อคำนวณค่าตามโหมดที่เลือก</p>
+      <form action="/upload" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="mode" value="{{ session.get('mode', '') }}">
+        <div class="drop">
+          <label for="file" class="pick">เลือกไฟล์ภาพจากอุปกรณ์</label>
+          <input id="file" type="file" name="file" accept="image/*" required>
+          <div class="hint">แนะนำให้ถ่ายภาพในที่มีแสงสม่ำเสมอ และให้แถบทดสอบอยู่กึ่งกลางภาพ</div>
+          <div class="preview" id="preview">
+            <img id="previewImg" alt="ตัวอย่างภาพที่เลือก">
+          </div>
+        </div>
+        <div class="actions">
+          <button id="submitBtn" class="cta" type="submit" disabled>อัปโหลดและวิเคราะห์</button>
+          <a class="back" href="/select-analysis-type">ย้อนกลับ</a>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <script>
-        function previewImage(event) {
-            const preview = document.getElementById('preview');
-            preview.innerHTML = "";
-            preview.classList.remove('empty');
+<script>
+  const fileInput = document.getElementById('file');
+  const submitBtn = document.getElementById('submitBtn');
+  const preview = document.getElementById('preview');
+  const previewImg = document.getElementById('previewImg');
 
-            const file = event.target.files[0];
-            if (!file) {
-                preview.classList.add('empty');
-                preview.textContent = "ยังไม่มีรูปภาพ";
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                preview.appendChild(img);
-            }
-            reader.readAsDataURL(file);
-        }
-    </script>
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    submitBtn.disabled = !file;
+    if (file) {
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      preview.style.display = 'flex';
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+</script>
 </body>
 </html>
