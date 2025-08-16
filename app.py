@@ -44,7 +44,7 @@ def describe_color(rgb):
         desc = "เกือบขาว"
     else:
         desc = "โทนเหลืองทั่วไป"
-    return f"สีโดยรวม: {desc}"
+    return f"สี: {desc}"
 
 def analyze_value(image_path: str, mode: str):
     """Very lightweight heuristic just for prototype demo.
@@ -58,11 +58,11 @@ def analyze_value(image_path: str, mode: str):
     if "nitrite" in mode:
         # darker green (lower G) -> higher nitrite
         nitrite = round((255 - g) / 255 * 3.0, 2)  # mg/mL (dummy scale)
-        return f"ไนไตรต์โดยประมาณ: {nitrite} mg/mL", nitrite
+        return f"ปริมาณไนไตรต์: {nitrite} mg/mL", nitrite
     else:
         # protein from R channel (dummy mapping to mg/dL 0–300)
         protein = round(r / 255 * 300, 0)
-        return f"โปรตีนโดยประมาณ: {int(protein)} mg/dL", protein
+        return f"ปริมาณโปรตีน: {int(protein)} mg/dL", protein
 
 @app.route('/')
 def home():
